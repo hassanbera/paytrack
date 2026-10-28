@@ -1,0 +1,44 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Plan {
+  id           String        @id @default(uuid()) @db.Uuid
+  title        String        @db.VarChar(120)
+  clientName   String        @db.VarChar(100)
+  clientEmail  String        @default("") @db.VarChar(200)
+  totalCents   Int
+  createdAt    DateTime      @default(now())
+  installments Installment[]
+}
+
+model Installment {
+  id          String    @id @default(uuid()) @db.Uuid
+  planId      String    @db.Uuid
+  plan        Plan      @relation(fields: [planId], references: [id], onDelete: Cascade)
+  number      Int
+  amountCents Int
+  paidCents   Int       @default(0)
+  dueDate     DateTime  @db.Date
+  payments    Payment[]
+
+  @@unique([planId, number])
+  @@index([dueDate])
+}
+
+model Payment {
+  id             String      @id @default(uuid()) @db.Uuid
+  installmentId  String      @db.Uuid
+  installment    Installment @relation(fields: [installmentId], references: [id], onDelete: Cascade)
+  amountCents    Int
+  note           String      @default("") @db.VarChar(300)
+  idempotencyKey String      @unique @db.Uuid
+  createdAt      DateTime    @default(now())
+
+  @@index([installmentId, createdAt])
+}
