@@ -8,6 +8,10 @@ React + TypeScript · Express + TypeScript · PostgreSQL + Prisma. Next.js içer
 
 [Telefon görünümü](docs/mobile.png)
 
+## Arayüz
+
+**Ant Design** · Koyu yeşil üst gezinme, açık finans yüzeyleri ve tahsilat tabloları. Tema sınırları ve doğrulama notları: [Arayüz sistemi](docs/ui.md).
+
 ## Özellikler
 
 - Müşteri bilgileriyle aylık ödeme planı
