@@ -1,3 +1,4 @@
+import { Table, Tag, Progress, Segmented } from 'antd';
 import { useEffect, useState, type FormEvent } from 'react';
 import {
   Plus,
@@ -12,7 +13,17 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { api, message, money, date } from './lib/api';
-import { Shell, Modal, Notice, Stat, Loading, Empty } from './components/ui';
+import {
+  Shell,
+  Modal,
+  Notice,
+  Stat,
+  Loading,
+  Empty,
+  UiButton,
+  UiInput,
+  UiTextarea,
+} from './components/ui';
 import { type Plan, type Installment, paid, overdue, status, cents } from './types';
 export default function App() {
   const [plans, setPlans] = useState<Plan[]>([]),
@@ -99,10 +110,10 @@ export default function App() {
       active="Ödeme planları"
       subtitle="Planlarını düzenle, nakit akışını görünür kıl."
       actions={
-        <button className="primary" onClick={() => setCreating(true)}>
+        <UiButton className="primary" onClick={() => setCreating(true)}>
           <Plus size={18} />
           Ödeme planı oluştur
-        </button>
+        </UiButton>
       }
     >
       <Notice error={error} clear={() => setError('')} />
@@ -134,8 +145,8 @@ export default function App() {
       </div>
       <div className="overview-banner">
         <div>
-          <span className="eyebrow">TAHSİLAT PERFORMANSI</span>
-          <h2>Her ödeme, daha net bir gelecek.</h2>
+          <span className="context-label">TAHSİLAT PERFORMANSI</span>
+          <h2>Tahsilat dağılımı</h2>
           <p>
             Planların toplam tahsilat oranı <strong>%{ratio}</strong>.
           </p>
@@ -157,7 +168,7 @@ export default function App() {
           </h2>
           <label className="search">
             <Search size={16} />
-            <input
+            <UiInput
               aria-label="Planlarda ara"
               placeholder="Müşteri veya plan ara…"
               value={search}
@@ -166,80 +177,96 @@ export default function App() {
           </label>
         </div>
         <div className="tabs">
-          {['Tümü', 'Devam ediyor', 'Gecikmiş', 'Tamamlandı'].map((t) => (
-            <button key={t} className={filter === t ? 'selected' : ''} onClick={() => setFilter(t)}>
-              {t}
-            </button>
-          ))}
+          <Segmented
+            options={['Tümü', 'Devam ediyor', 'Gecikmiş', 'Tamamlandı']}
+            value={filter}
+            onChange={(value) => setFilter(String(value))}
+          />
         </div>
         {loading ? (
           <Loading />
         ) : !filtered.length ? (
           <Empty>Bu görünümde ödeme planı yok.</Empty>
         ) : (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>MÜŞTERİ / PLAN</th>
-                  <th>PLAN TUTARI</th>
-                  <th>TAHSİLAT</th>
-                  <th>DURUM</th>
-                  <th aria-label="Ayrıntı" />
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((p) => (
-                  <tr key={p.id}>
-                    <td>
-                      <div className="client-cell">
-                        <span className="client-avatar">
-                          {p.clientName.slice(0, 2).toLocaleUpperCase('tr')}
-                        </span>
-                        <div>
-                          <strong>{p.clientName}</strong>
-                          <small>{p.title}</small>
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      <strong>{money(p.totalCents)}</strong>
-                      <small>{p.installments.length} taksit</small>
-                    </td>
-                    <td>
-                      <strong>{money(paid(p))}</strong>
-                      <div className="progress-track">
-                        <span style={{ width: (paid(p) / p.totalCents) * 100 + '%' }} />
-                      </div>
-                    </td>
-                    <td>
-                      <span
-                        className={
-                          'status-badge ' +
-                          (status(p) === 'Tamamlandı'
-                            ? 'success'
-                            : status(p) === 'Gecikmiş'
-                              ? 'warning'
-                              : 'neutral')
-                        }
-                      >
-                        {status(p)}
-                      </span>
-                    </td>
-                    <td>
-                      <button
-                        className="icon-button"
-                        aria-label={p.title + ' ayrıntıları'}
-                        onClick={() => setSelected(p.id)}
-                      >
-                        <ChevronRight size={19} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Table<Plan>
+            rowKey="id"
+            dataSource={filtered}
+            pagination={false}
+            scroll={{ x: 760 }}
+            columns={[
+              {
+                title: 'Müşteri / plan',
+                key: 'client',
+                render: (_: unknown, p: Plan) => (
+                  <div className="client-cell">
+                    <span className="client-avatar">
+                      {p.clientName.slice(0, 2).toLocaleUpperCase('tr')}
+                    </span>
+                    <div>
+                      <strong>{p.clientName}</strong>
+                      <small>{p.title}</small>
+                    </div>
+                  </div>
+                ),
+              },
+              {
+                title: 'Plan tutarı',
+                key: 'amount',
+                render: (_: unknown, p: Plan) => (
+                  <div className="plan-amount">
+                    <strong>{money(p.totalCents)}</strong>
+                    <small>{p.installments.length} taksit</small>
+                  </div>
+                ),
+              },
+              {
+                title: 'Tahsilat',
+                key: 'paid',
+                width: 190,
+                render: (_: unknown, p: Plan) => (
+                  <div>
+                    <strong>{money(paid(p))}</strong>
+                    <Progress
+                      percent={Math.round((paid(p) / p.totalCents) * 100)}
+                      showInfo={false}
+                      size="small"
+                    />
+                  </div>
+                ),
+              },
+              {
+                title: 'Durum',
+                key: 'status',
+                render: (_: unknown, p: Plan) => (
+                  <Tag
+                    color={
+                      status(p) === 'Tamamlandı'
+                        ? 'success'
+                        : status(p) === 'Gecikmiş'
+                          ? 'warning'
+                          : 'processing'
+                    }
+                  >
+                    {status(p)}
+                  </Tag>
+                ),
+              },
+              {
+                title: '',
+                key: 'actions',
+                width: 60,
+                render: (_: unknown, p: Plan) => (
+                  <UiButton
+                    className="icon-button"
+                    aria-label={p.title + ' ayrıntıları'}
+                    onClick={() => setSelected(p.id)}
+                  >
+                    <ChevronRight size={19} />
+                  </UiButton>
+                ),
+              },
+            ]}
+          />
         )}
       </section>
       <div className="hint">
@@ -252,7 +279,7 @@ export default function App() {
           <form onSubmit={create}>
             <label>
               Plan başlığı
-              <input
+              <UiInput
                 name="title"
                 required
                 maxLength={120}
@@ -263,24 +290,31 @@ export default function App() {
             <div className="form-grid">
               <label>
                 Müşteri adı
-                <input name="clientName" required maxLength={100} />
+                <UiInput name="clientName" required maxLength={100} />
               </label>
               <label>
                 E-posta (isteğe bağlı)
-                <input name="clientEmail" type="email" maxLength={200} />
+                <UiInput name="clientEmail" type="email" maxLength={200} />
               </label>
               <label>
                 Toplam tutar (₺)
-                <input name="total" type="number" min="0.01" max="10000000" step="0.01" required />
+                <UiInput
+                  name="total"
+                  type="number"
+                  min="0.01"
+                  max="10000000"
+                  step="0.01"
+                  required
+                />
               </label>
               <label>
                 Taksit sayısı
-                <input name="count" type="number" min="1" max="36" defaultValue="3" required />
+                <UiInput name="count" type="number" min="1" max="36" defaultValue="3" required />
               </label>
             </div>
             <label>
               İlk vade tarihi
-              <input
+              <UiInput
                 name="due"
                 type="date"
                 required
@@ -291,12 +325,12 @@ export default function App() {
               Taksitler aylık oluşturulur. Ay sonu tarihleri ilgili ayın son gününe uyarlanır.
             </p>
             <div className="form-actions">
-              <button type="button" className="secondary" onClick={() => setCreating(false)}>
+              <UiButton type="button" className="secondary" onClick={() => setCreating(false)}>
                 Vazgeç
-              </button>
-              <button className="primary" disabled={busy}>
+              </UiButton>
+              <UiButton className="primary" disabled={busy}>
                 {busy ? 'Oluşturuluyor…' : 'Planı oluştur'}
-              </button>
+              </UiButton>
             </div>
           </form>
         </Modal>
@@ -305,7 +339,7 @@ export default function App() {
         <Modal title={detail.title} close={() => setSelected(null)}>
           <div className="detail-intro">
             <div>
-              <span className="eyebrow">{detail.clientName}</span>
+              <span className="context-label">{detail.clientName}</span>
               <h3>{money(detail.totalCents)}</h3>
               <p>
                 {detail.clientEmail || 'Ödeme planı'} · Kalan{' '}
@@ -339,7 +373,7 @@ export default function App() {
                     </small>
                   </div>
                   {i.paidCents < i.amountCents && (
-                    <button
+                    <UiButton
                       className="secondary"
                       onClick={() => {
                         setPaying(i);
@@ -347,7 +381,7 @@ export default function App() {
                       }}
                     >
                       Tahsilat ekle
-                    </button>
+                    </UiButton>
                   )}
                 </div>
                 <div className="installment-balance">
@@ -373,14 +407,14 @@ export default function App() {
           <form onSubmit={pay}>
             <div className="detail-intro">
               <div>
-                <span className="eyebrow">{paying.number}. TAKSİT</span>
+                <span className="context-label">{paying.number}. TAKSİT</span>
                 <h3>{money(paying.amountCents - paying.paidCents)}</h3>
                 <p>Kalan tahsil edilebilir tutar</p>
               </div>
             </div>
             <label>
               Tahsilat tutarı (₺)
-              <input
+              <UiInput
                 name="amount"
                 type="number"
                 min="0.01"
@@ -393,15 +427,15 @@ export default function App() {
             </label>
             <label>
               Not
-              <textarea name="note" maxLength={300} placeholder="Örn. Banka havalesi" />
+              <UiTextarea name="note" maxLength={300} placeholder="Örn. Banka havalesi" />
             </label>
             <div className="form-actions">
-              <button type="button" className="secondary" onClick={() => setPaying(null)}>
+              <UiButton type="button" className="secondary" onClick={() => setPaying(null)}>
                 Vazgeç
-              </button>
-              <button className="primary" disabled={busy}>
+              </UiButton>
+              <UiButton className="primary" disabled={busy}>
                 {busy ? 'Kaydediliyor…' : 'Tahsilatı kaydet'}
-              </button>
+              </UiButton>
             </div>
           </form>
         </Modal>

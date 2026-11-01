@@ -1,9 +1,54 @@
-import { useEffect, useRef, useId, type ReactNode } from 'react';
-import { X, ArrowUpRight, Layers3 } from 'lucide-react';
+import type {
+  ReactNode,
+  ButtonHTMLAttributes,
+  InputHTMLAttributes,
+  TextareaHTMLAttributes,
+} from 'react';
+import {
+  Button,
+  Input,
+  Modal as AntModal,
+  Alert,
+  Card,
+  Spin,
+  Empty as AntEmpty,
+  Statistic,
+} from 'antd';
+import { Wallet } from 'lucide-react';
+export function UiButton({
+  className = '',
+  type,
+  ...props
+}: Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'color'>) {
+  return (
+    <Button
+      className={className}
+      type={
+        className.includes('primary') || className.includes('selected')
+          ? 'primary'
+          : className.includes('icon-button')
+            ? 'text'
+            : 'default'
+      }
+      danger={className.includes('danger')}
+      htmlType={type ?? 'submit'}
+      {...props}
+    />
+  );
+}
+export function UiInput({
+  size: _size,
+  color: _color,
+  ...props
+}: InputHTMLAttributes<HTMLInputElement>) {
+  return <Input {...props} />;
+}
+export function UiTextarea(props: TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  return <Input.TextArea rows={3} {...props} />;
+}
 export function Shell({
   children,
   title,
-  active,
   subtitle,
   actions,
 }: {
@@ -14,62 +59,25 @@ export function Shell({
   actions?: ReactNode;
 }) {
   return (
-    <div className="app-shell">
-      <aside className="sidebar">
-        <a className="brand" href="/">
-          <span className="brand-icon">
-            <Layers3 size={22} />
-          </span>
-          PayTrack<span className="brand-dot">.</span>
+    <div className="paytrack-workspace">
+      <header className="finance-header">
+        <a href="/" className="finance-brand">
+          <Wallet size={25} />
+          PayTrack
         </a>
-        <div className="workspace">
-          <span className="avatar">B</span>
+        <span>Tahsilat yönetimi</span>
+        <span className="finance-period">Ödeme planları ve hesap hareketleri</span>
+      </header>
+      <main className="finance-main">
+        <div className="page-heading">
           <div>
-            <strong>Portfolyo alanı</strong>
-            <small>Kişisel çalışma alanı</small>
+            <h1>{title}</h1>
+            <p>{subtitle}</p>
           </div>
+          {actions}
         </div>
-        <span className="nav-label">ÇALIŞMA ALANI</span>
-        <nav>
-          <a className="nav-item active" href="/">
-            <Layers3 size={17} />
-            {active}
-            <span className="nav-dot" />
-          </a>
-        </nav>
-        <div className="sidebar-bottom">
-          <span className="status-light" />
-          PostgreSQL + Prisma<small>React · Express · TypeScript</small>
-          <a href="https://github.com/hassanbera/paytrack" target="_blank" rel="noreferrer">
-            Kaynak kodu <ArrowUpRight size={15} />
-          </a>
-        </div>
-      </aside>
-      <div className="main-shell">
-        <header className="topbar">
-          <span>
-            Çalışma alanı <span className="crumb">/</span> <strong>{active}</strong>
-          </span>
-          <span className="topbar-label">
-            PORTFOLYO DEMOSU <span className="avatar tiny">B</span>
-          </span>
-        </header>
-        <main>
-          <div className="page-heading">
-            <div>
-              <span className="eyebrow">Tahsilatın net bir resmi.</span>
-              <h1>{title}</h1>
-              <p>{subtitle}</p>
-            </div>
-            <div className="heading-actions">{actions}</div>
-          </div>
-          {children}
-          <footer>
-            PayTrack <span>Az karmaşa. Daha çok odak.</span>
-            <span className="footer-right">Bağımsız bir portfolyo projesi</span>
-          </footer>
-        </main>
-      </div>
+        {children}
+      </main>
     </div>
   );
 }
@@ -82,41 +90,14 @@ export function Modal({
   children: ReactNode;
   close: () => void;
 }) {
-  const ref = useRef<HTMLDialogElement>(null);
-  const titleId = useId();
-  useEffect(() => {
-    const d = ref.current!;
-    d.showModal();
-    return () => d.close();
-  }, []);
   return (
-    <dialog
-      aria-labelledby={titleId}
-      ref={ref}
-      onCancel={close}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) close();
-      }}
-    >
-      <div className="modal-heading">
-        <h2 id={titleId}>{title}</h2>
-        <button className="icon-button" onClick={close} aria-label="Kapat">
-          <X size={20} />
-        </button>
-      </div>
+    <AntModal open title={title} onCancel={close} footer={null} width={620} destroyOnHidden>
       {children}
-    </dialog>
+    </AntModal>
   );
 }
 export function Notice({ error, clear }: { error: string; clear: () => void }) {
-  return error ? (
-    <div className="notice" role="alert">
-      {error}
-      <button onClick={clear} aria-label="Bildirimi kapat">
-        <X size={16} />
-      </button>
-    </div>
-  ) : null;
+  return error ? <Alert type="error" message={error} closable onClose={clear} showIcon /> : null;
 }
 export function Stat({
   label,
@@ -130,24 +111,24 @@ export function Stat({
   icon: ReactNode;
 }) {
   return (
-    <div className="stat">
+    <Card className="stat" size="small">
       <span className="stat-label">
+        {icon}
         {label}
-        <span className="stat-icon">{icon}</span>
       </span>
-      <strong>{value}</strong>
-      <small>{detail}</small>
-    </div>
+      <Statistic value={typeof value === 'number' ? value : 0} formatter={() => value} />
+      <small className="stat-detail">{detail}</small>
+    </Card>
   );
 }
 export function Loading() {
   return (
     <div className="empty" role="status">
-      <span className="spinner" />
-      Veriler yükleniyor…
+      <Spin />
+      Ödemeler yükleniyor…
     </div>
   );
 }
 export function Empty({ children }: { children: ReactNode }) {
-  return <div className="empty">{children}</div>;
+  return <AntEmpty description={children} image={AntEmpty.PRESENTED_IMAGE_SIMPLE} />;
 }
